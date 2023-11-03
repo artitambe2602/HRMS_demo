@@ -1,0 +1,69 @@
+name: Build and Push from dev to staging
+
+on:
+  push:
+    branches:
+      - dev
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9  # Specify your desired Python version
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Start and stop Python script
+        run: |
+          python main.py &               # Start the Python script in the background
+          sleep 5s                      # Wait for 1 minutes (adjust the duration as needed)
+          pkill -f "python main.py"      # Stop the Python script
+      - name: Run Tests
+        run: | 
+          python test.py
+          
+      - name: Push Dev to staging
+        run: |
+          # Configure Git
+          git config user.email "artitambe2602@gmail.com"
+          git config user.name "Arti Tambe"
+
+          #Fetch Remote Branches test branches
+          git fetch origin 
+
+          #Checkout Staging Branch
+          git checkout staging
+
+
+          # Merge Dev into feature.
+          git merge --allow-unrelated-histories dev
+
+
+          #Push to staging Branch
+          git push origin staging
+
+  # push_staging_to_main:
+  #   runs-on: ubuntu-latest
+  #   needs: build
+  #   if: github.ref == 'refs/heads/staging' # This job runs only when the push is to the staging branch
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v2
+
+  #     - name: Create Pull Request to Main
+  #       run: |
+  #         # Create a pull request from 'staging' to 'main'
+  #         gh pr create --base main --head staging --title "Merge staging into main" --body "Automated PR from staging to main"
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
